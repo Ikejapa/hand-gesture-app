@@ -5,9 +5,6 @@ let brushSize = 5;
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
-let uploadedImage = null;
-let imageX = 0;
-let imageY = 0;
 let particles = [];
 let animationId = null;
 let isBlurEnabled = true;
@@ -119,8 +116,6 @@ function onResults(results) {
         // モードに応じた処理
         if (mode === 'draw') {
             handleDrawMode(x, y, gesture);
-        } else if (mode === 'photo' && uploadedImage) {
-            handlePhotoMode(x, y, gesture);
         } else if (mode === 'particle') {
             handleParticleMode(x, y, gesture);
         }
@@ -202,40 +197,6 @@ function handleDrawMode(x, y, gesture) {
         }
     } else {
         isDrawing = false;
-    }
-}
-
-// 写真モード処理
-function handlePhotoMode(x, y, gesture) {
-    if (!uploadedImage) return;
-    
-    if (gesture === 'ピンチ') {
-        // 画像を移動
-        imageX = x - uploadedImage.width / 2;
-        imageY = y - uploadedImage.height / 2;
-        
-        // キャンバスをクリアして再描画
-        drawingCtx.fillStyle = 'white';
-        drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-        drawingCtx.drawImage(uploadedImage, imageX, imageY);
-    } else if (gesture === 'ピース') {
-        // 画像を拡大
-        const scale = 1.02;
-        uploadedImage.width *= scale;
-        uploadedImage.height *= scale;
-        
-        drawingCtx.fillStyle = 'white';
-        drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-        drawingCtx.drawImage(uploadedImage, imageX, imageY, uploadedImage.width, uploadedImage.height);
-    } else if (gesture === 'グー') {
-        // 画像を縮小
-        const scale = 0.98;
-        uploadedImage.width *= scale;
-        uploadedImage.height *= scale;
-        
-        drawingCtx.fillStyle = 'white';
-        drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-        drawingCtx.drawImage(uploadedImage, imageX, imageY, uploadedImage.width, uploadedImage.height);
     }
 }
 
@@ -384,46 +345,6 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     link.click();
 });
 
-// 画像アップロードボタン
-document.getElementById('uploadBtn').addEventListener('click', () => {
-    document.getElementById('fileInput').click();
-});
-
-// ファイル選択処理
-document.getElementById('fileInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                uploadedImage = img;
-                // 画像サイズを調整
-                const maxWidth = drawingCanvas.width * 0.5;
-                const maxHeight = drawingCanvas.height * 0.5;
-                const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
-                uploadedImage.width = img.width * scale;
-                uploadedImage.height = img.height * scale;
-                
-                // 中央に配置
-                imageX = (drawingCanvas.width - uploadedImage.width) / 2;
-                imageY = (drawingCanvas.height - uploadedImage.height) / 2;
-                
-                // キャンバスに描画
-                drawingCtx.fillStyle = 'white';
-                drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                drawingCtx.drawImage(uploadedImage, imageX, imageY, uploadedImage.width, uploadedImage.height);
-                
-                // 写真モードに切り替え
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                document.querySelector('[data-mode="photo"]').classList.add('active');
-                mode = 'photo';
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-});
 
 // ウィンドウリサイズ対応
 window.addEventListener('resize', resizeCanvas);
