@@ -15,8 +15,26 @@
 <body>
     <!-- ヘッダー -->
     <header>
-        <h1>Hand Gesture Art</h1>
-        <p class="subtitle">手の動きで描く、新しいアート体験</p>
+        <div class="header-left">
+            <h1>Hand Gesture Art</h1>
+            <p class="subtitle">手の動きで描く、新しいアート体験</p>
+        </div>
+        <div class="header-right">
+            <div class="status-info">
+                <div class="status-item">
+                    <span class="status-label">カメラ:</span>
+                    <span id="headerCameraStatus" class="status-value">待機中</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">手の検出:</span>
+                    <span id="headerHandStatus" class="status-value">なし</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">ジェスチャー:</span>
+                    <span id="headerGestureStatus" class="status-value">待機中</span>
+                </div>
+            </div>
+        </div>
     </header>
 
     <!-- メインコンテナ -->
@@ -103,21 +121,6 @@
             </div>
         </div>
 
-        <!-- ステータスバー -->
-        <div class="status-bar">
-            <div class="status-item">
-                <span class="status-label">カメラ:</span>
-                <span id="cameraStatus" class="status-value">準備中...</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">手の検出:</span>
-                <span id="handStatus" class="status-value">未検出</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">ジェスチャー:</span>
-                <span id="gestureStatus" class="status-value">なし</span>
-            </div>
-        </div>
     </main>
 
 

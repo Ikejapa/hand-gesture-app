@@ -18,10 +18,10 @@ const handCtx = handCanvas.getContext('2d');
 const segmentationCtx = segmentationCanvas.getContext('2d');
 const video = document.getElementById('inputVideo');
 
-// ステータス要素
-const cameraStatus = document.getElementById('cameraStatus');
-const handStatus = document.getElementById('handStatus');
-const gestureStatus = document.getElementById('gestureStatus');
+// ステータス要素（ヘッダーのみ）
+const cameraStatus = document.getElementById('headerCameraStatus');
+const handStatus = document.getElementById('headerHandStatus');
+const gestureStatus = document.getElementById('headerGestureStatus');
 
 // キャンバスサイズ設定
 function resizeCanvas() {
