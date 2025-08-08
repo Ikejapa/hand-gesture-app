@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture Art - ハンドジェスチャーアート</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- MediaPipe Hand Tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <header>
+        <h1>Hand Gesture Art</h1>
+        <p class="subtitle">手の動きで描く、新しいアート体験</p>
+    </header>
+
+    <!-- メインコンテナ -->
+    <main class="container">
+        <!-- キャンバスエリア -->
+        <div class="canvas-container">
+            <canvas id="drawingCanvas"></canvas>
+            <canvas id="handCanvas"></canvas>
+            <canvas id="segmentationCanvas"></canvas>
+            <video id="inputVideo" style="display: none;"></video>
+        </div>
+
+        <!-- コントロールパネル -->
+        <div class="controls">
+            <div class="control-group">
+                <h3>モード選択</h3>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" data-mode="draw">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                        <span>描画</span>
+                    </button>
+                    <button class="mode-btn" data-mode="photo">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                        </svg>
+                        <span>写真</span>
+                    </button>
+                    <button class="mode-btn" data-mode="particle">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M14.43 10L12 2l-2.43 8H2l6.18 4.41L5.83 22 12 17.31 18.18 22l-2.35-7.59L22 10h-7.57z"/>
+                        </svg>
+                        <span>パーティクル</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>ペンの設定</h3>
+                <div class="pen-controls">
+                    <div class="color-picker">
+                        <label>色</label>
+                        <div class="color-options">
+                            <button class="color-btn active" data-color="#FF6B6B" style="background: #FF6B6B"></button>
+                            <button class="color-btn" data-color="#4ECDC4" style="background: #4ECDC4"></button>
+                            <button class="color-btn" data-color="#45B7D1" style="background: #45B7D1"></button>
+                            <button class="color-btn" data-color="#96CEB4" style="background: #96CEB4"></button>
+                            <button class="color-btn" data-color="#FFEAA7" style="background: #FFEAA7"></button>
+                            <button class="color-btn" data-color="#87CEEB" style="background: #87CEEB"></button>
+                            <button class="color-btn" data-color="#000000" style="background: #000000"></button>
+                            <button class="color-btn" data-color="#FFFFFF" style="background: #FFFFFF; border: 1px solid #ddd"></button>
+                        </div>
+                    </div>
+                    <div class="size-control">
+                        <label for="brushSize">太さ: <span id="sizeValue">5</span></label>
+                        <input type="range" id="brushSize" min="1" max="50" value="5">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>カメラ設定</h3>
+                <div class="action-buttons">
+                    <button id="blurToggleBtn" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM7.07 18.28c.43-.9 3.05-1.78 4.93-1.78s4.51.88 4.93 1.78C15.57 19.36 13.86 20 12 20s-3.57-.64-4.93-1.72zm11.29-1.45c-1.43-1.74-4.9-2.33-6.36-2.33s-4.93.59-6.36 2.33C4.62 15.49 4 13.82 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8c0 1.82-.62 3.49-1.64 4.83z"/>
+                        </svg>
+                        <span id="blurToggleText">ぼかし ON</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>アクション</h3>
+                <div class="action-buttons">
+                    <button id="clearBtn" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                        クリア
+                    </button>
+                    <button id="saveBtn" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
+                        </svg>
+                        保存
+                    </button>
+                    <button id="uploadBtn" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        画像アップロード
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ステータスバー -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">カメラ:</span>
+                <span id="cameraStatus" class="status-value">準備中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">手の検出:</span>
+                <span id="handStatus" class="status-value">未検出</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">ジェスチャー:</span>
+                <span id="gestureStatus" class="status-value">なし</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 隠し要素 -->
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
