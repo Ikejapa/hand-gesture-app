@@ -1,6 +1,6 @@
 // グローバル変数
 let mode = 'draw';
-let brushColor = '#FF6B6B';
+let brushColor = '#F15C5C';
 let brushSize = 5;
 let isDrawing = false;
 let lastX = 0;
@@ -8,6 +8,11 @@ let lastY = 0;
 let particles = [];
 let animationId = null;
 let isBlurEnabled = true;
+
+// Undo機能用の変数
+let drawingHistory = [];
+let historyStep = -1;
+const MAX_HISTORY = 50; // 最大履歴数
 
 // 線を滑らかにするための座標履歴
 let coordinateHistory = [];
@@ -58,6 +63,47 @@ function smoothCoordinate(x, y) {
     };
 }
 
+// 描画履歴を保存する関数
+function saveDrawingState() {
+    historyStep++;
+    if (historyStep < drawingHistory.length) {
+        drawingHistory.length = historyStep;
+    }
+    drawingHistory.push(drawingCanvas.toDataURL());
+    
+    // 履歴の上限を管理
+    if (drawingHistory.length > MAX_HISTORY) {
+        drawingHistory.shift();
+        historyStep = MAX_HISTORY - 1;
+    }
+}
+
+// Undo機能
+function undoDrawing() {
+    if (historyStep > 0) {
+        historyStep--;
+        restoreDrawingState();
+    }
+}
+
+// Redo機能
+function redoDrawing() {
+    if (historyStep < drawingHistory.length - 1) {
+        historyStep++;
+        restoreDrawingState();
+    }
+}
+
+// 描画状態を復元する関数
+function restoreDrawingState() {
+    const img = new Image();
+    img.onload = function() {
+        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        drawingCtx.drawImage(img, 0, 0);
+    };
+    img.src = drawingHistory[historyStep];
+}
+
 // キャンバスサイズ設定
 function resizeCanvas() {
     const container = document.querySelector('.canvas-container');
@@ -75,6 +121,9 @@ function resizeCanvas() {
     // 背景を白に
     drawingCtx.fillStyle = 'white';
     drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    
+    // 初期状態を履歴に保存
+    saveDrawingState();
 }
 
 // MediaPipe Hands初期化
@@ -289,10 +338,11 @@ function handleDrawMode(x, y, gesture) {
         }
     } else {
         if (isDrawing) {
-            // 描画終了時に最後のパスを確定
+            // 描画終了時に最後のパスを確定し、履歴を保存
             isDrawing = false;
             currentPath = [];
             coordinateHistory = [];
+            saveDrawingState();
         }
     }
 }
@@ -361,14 +411,48 @@ const camera = new Camera(video, {
     height: 720
 });
 
+// HTTPS接続の確認
+function checkHTTPS() {
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        alert('カメラを使用するにはHTTPS接続が必要です。https://でアクセスしてください。');
+        return false;
+    }
+    return true;
+}
+
+// getUserMedia サポート確認
+function checkMediaDevicesSupport() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('このブラウザはカメラアクセスをサポートしていません。\n最新版のChrome、Firefox、Safariをお使いください。');
+        return false;
+    }
+    return true;
+}
+
 // カメラ開始
-camera.start().then(() => {
-    cameraStatus.textContent = '動作中';
-    cameraStatus.classList.add('active');
-}).catch((err) => {
-    console.error('カメラエラー:', err);
-    cameraStatus.textContent = 'エラー';
-});
+if (checkHTTPS() && checkMediaDevicesSupport()) {
+    camera.start().then(() => {
+        cameraStatus.textContent = '動作中';
+        cameraStatus.classList.add('active');
+    }).catch((err) => {
+        console.error('カメラエラー:', err);
+        let errorMessage = 'カメラエラー';
+        
+        if (err.name === 'NotAllowedError') {
+            errorMessage = 'カメラ許可が必要です';
+            alert('カメラの使用を許可してください。ブラウザの設定でカメラアクセスを有効にしてから、ページを再読み込みしてください。');
+        } else if (err.name === 'NotFoundError') {
+            errorMessage = 'カメラが見つかりません';
+        } else if (err.name === 'NotSupportedError') {
+            errorMessage = 'HTTPS接続が必要です';
+            alert('カメラを使用するにはHTTPS接続が必要です。');
+        }
+        
+        cameraStatus.textContent = errorMessage;
+    });
+} else {
+    cameraStatus.textContent = 'HTTPS必須';
+}
 
 // モード切り替え
 document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -432,6 +516,9 @@ document.getElementById('clearBtn').addEventListener('click', () => {
         cancelAnimationFrame(animationId);
         animationId = null;
     }
+    
+    // クリア後の状態を履歴に保存
+    saveDrawingState();
 });
 
 // 保存ボタン
@@ -461,6 +548,30 @@ document.getElementById('blurToggleBtn').addEventListener('click', () => {
         toggleBtn.style.background = '';
         toggleBtn.style.color = '';
     }
+});
+
+// キーボードショートカット
+document.addEventListener('keydown', (e) => {
+    // Ctrl+Z: Undo
+    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoDrawing();
+    }
+    // Ctrl+Shift+Z または Ctrl+Y: Redo
+    else if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
+        e.preventDefault();
+        redoDrawing();
+    }
+});
+
+// Undoボタンのイベントリスナー
+document.getElementById('undoBtn').addEventListener('click', () => {
+    undoDrawing();
+});
+
+// Redoボタンのイベントリスナー
+document.getElementById('redoBtn').addEventListener('click', () => {
+    redoDrawing();
 });
 
 // 初期化

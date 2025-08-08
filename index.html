@@ -16,8 +16,13 @@
     <!-- ヘッダー -->
     <header>
         <div class="header-left">
-            <h1>おててでアート</h1>
-            <p class="subtitle">手の動きで描く、新しいアート体験</p>
+            <div class="app-title">
+                <img src="icon.png" alt="おててでアート" class="app-icon">
+                <div class="title-text">
+                    <h1>おててでアート</h1>
+                    <p class="subtitle">手の動きで描く、新しいアート体験</p>
+                </div>
+            </div>
         </div>
         <div class="header-right">
             <div class="status-info">
@@ -73,14 +78,14 @@
                     <div class="color-picker">
                         <label>色</label>
                         <div class="color-options">
-                            <button class="color-btn active" data-color="#FF6B6B" style="background: #FF6B6B"></button>
-                            <button class="color-btn" data-color="#4ECDC4" style="background: #4ECDC4"></button>
-                            <button class="color-btn" data-color="#45B7D1" style="background: #45B7D1"></button>
-                            <button class="color-btn" data-color="#96CEB4" style="background: #96CEB4"></button>
-                            <button class="color-btn" data-color="#FFEAA7" style="background: #FFEAA7"></button>
-                            <button class="color-btn" data-color="#87CEEB" style="background: #87CEEB"></button>
-                            <button class="color-btn" data-color="#000000" style="background: #000000"></button>
-                            <button class="color-btn" data-color="#FFFFFF" style="background: #FFFFFF; border: 1px solid #ddd"></button>
+                            <button class="color-btn active" data-color="#F15C5C" style="background: #F15C5C"></button>
+                            <button class="color-btn" data-color="#45C2B0" style="background: #45C2B0"></button>
+                            <button class="color-btn" data-color="#3CB4CF" style="background: #3CB4CF"></button>
+                            <button class="color-btn" data-color="#8DD3B6" style="background: #8DD3B6"></button>
+                            <button class="color-btn" data-color="#FBE29E" style="background: #FBE29E"></button>
+                            <button class="color-btn" data-color="#96CDEA" style="background: #96CDEA"></button>
+                            <button class="color-btn" data-color="#FFA94D" style="background: #FFA94D"></button>
+                            <button class="color-btn" data-color="#B197FC" style="background: #B197FC"></button>
                         </div>
                     </div>
                     <div class="size-control">
@@ -98,6 +103,24 @@
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM7.07 18.28c.43-.9 3.05-1.78 4.93-1.78s4.51.88 4.93 1.78C15.57 19.36 13.86 20 12 20s-3.57-.64-4.93-1.72zm11.29-1.45c-1.43-1.74-4.9-2.33-6.36-2.33s-4.93.59-6.36 2.33C4.62 15.49 4 13.82 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8c0 1.82-.62 3.49-1.64 4.83z"/>
                         </svg>
                         <span id="blurToggleText">ぼかし ON</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>編集</h3>
+                <div class="action-buttons">
+                    <button id="undoBtn" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+                        </svg>
+                        元に戻す
+                    </button>
+                    <button id="redoBtn" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
+                        </svg>
+                        やり直し
                     </button>
                 </div>
             </div>
