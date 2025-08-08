@@ -9,6 +9,10 @@ let particles = [];
 let animationId = null;
 let isBlurEnabled = true;
 
+// 線を滑らかにするための座標履歴
+let coordinateHistory = [];
+const HISTORY_SIZE = 5;  // 履歴のサイズ（大きいほど滑らか）
+
 // キャンバス要素
 const drawingCanvas = document.getElementById('drawingCanvas');
 const handCanvas = document.getElementById('handCanvas');
@@ -22,6 +26,37 @@ const video = document.getElementById('inputVideo');
 const cameraStatus = document.getElementById('headerCameraStatus');
 const handStatus = document.getElementById('headerHandStatus');
 const gestureStatus = document.getElementById('headerGestureStatus');
+
+// 座標を平滑化する関数
+function smoothCoordinate(x, y) {
+    // 座標を履歴に追加
+    coordinateHistory.push({ x, y });
+    
+    // 履歴サイズを制限
+    if (coordinateHistory.length > HISTORY_SIZE) {
+        coordinateHistory.shift();
+    }
+    
+    // 移動平均を計算
+    if (coordinateHistory.length === 0) return { x, y };
+    
+    let avgX = 0;
+    let avgY = 0;
+    let totalWeight = 0;
+    
+    // 重み付き移動平均（新しい座標ほど重みを大きく）
+    coordinateHistory.forEach((coord, index) => {
+        const weight = index + 1;  // 1, 2, 3, 4, 5...
+        avgX += coord.x * weight;
+        avgY += coord.y * weight;
+        totalWeight += weight;
+    });
+    
+    return {
+        x: avgX / totalWeight,
+        y: avgY / totalWeight
+    };
+}
 
 // キャンバスサイズ設定
 function resizeCanvas() {
@@ -106,8 +141,13 @@ function onResults(results) {
         // 人差し指の先端（landmark 8）を取得
         const indexTip = landmarks[8];
         // X座標を反転させて鏡のような動きにする
-        const x = (1 - indexTip.x) * drawingCanvas.width;
-        const y = indexTip.y * drawingCanvas.height;
+        const rawX = (1 - indexTip.x) * drawingCanvas.width;
+        const rawY = indexTip.y * drawingCanvas.height;
+        
+        // 座標を平滑化
+        const smoothed = smoothCoordinate(rawX, rawY);
+        const x = smoothed.x;
+        const y = smoothed.y;
         
         // ジェスチャー検出
         const gesture = detectGesture(landmarks);
@@ -145,6 +185,7 @@ function onResults(results) {
         handStatus.classList.remove('active');
         gestureStatus.textContent = 'なし';
         isDrawing = false;
+        coordinateHistory = [];  // 手を検出できない時は履歴をクリア
     }
     
     handCtx.restore();
@@ -181,22 +222,78 @@ function detectGesture(landmarks) {
     }
 }
 
+// パスの履歴を保持
+let currentPath = [];
+let SMOOTH_THRESHOLD = 2; // 座標間の最小距離
+
 // 描画モード処理
 function handleDrawMode(x, y, gesture) {
     if (gesture === 'ポイント') {
         if (!isDrawing) {
             isDrawing = true;
-            drawingCtx.beginPath();
-            drawingCtx.moveTo(x, y);
+            currentPath = [{x, y}];
+            lastX = x;
+            lastY = y;
+            coordinateHistory = [];
         } else {
-            drawingCtx.lineTo(x, y);
-            drawingCtx.strokeStyle = brushColor;
-            drawingCtx.lineWidth = brushSize;
-            drawingCtx.lineCap = 'round';
-            drawingCtx.stroke();
+            // 移動距離が閾値以上の場合のみ追加
+            const distance = Math.sqrt(Math.pow(x - lastX, 2) + Math.pow(y - lastY, 2));
+            
+            if (distance > SMOOTH_THRESHOLD) {
+                currentPath.push({x, y});
+                
+                // 描画設定
+                drawingCtx.strokeStyle = brushColor;
+                drawingCtx.lineWidth = brushSize;
+                drawingCtx.lineCap = 'round';
+                drawingCtx.lineJoin = 'round';
+                drawingCtx.globalCompositeOperation = 'source-over';
+                
+                // パス全体を再描画（最後の数点のみ）
+                if (currentPath.length >= 2) {
+                    drawingCtx.beginPath();
+                    
+                    // 最後の数点だけ描画して高速化
+                    const startIndex = Math.max(0, currentPath.length - 3);
+                    drawingCtx.moveTo(currentPath[startIndex].x, currentPath[startIndex].y);
+                    
+                    for (let i = startIndex + 1; i < currentPath.length; i++) {
+                        const prev = currentPath[i - 1];
+                        const curr = currentPath[i];
+                        
+                        // 中間点を使った曲線補間
+                        const midX = (prev.x + curr.x) / 2;
+                        const midY = (prev.y + curr.y) / 2;
+                        
+                        if (i === startIndex + 1) {
+                            drawingCtx.lineTo(midX, midY);
+                        } else {
+                            drawingCtx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+                        }
+                    }
+                    
+                    // 最後の点まで線を引く
+                    const lastPoint = currentPath[currentPath.length - 1];
+                    drawingCtx.lineTo(lastPoint.x, lastPoint.y);
+                    drawingCtx.stroke();
+                }
+                
+                lastX = x;
+                lastY = y;
+                
+                // パスが長くなりすぎないように制限
+                if (currentPath.length > 100) {
+                    currentPath = currentPath.slice(-50);
+                }
+            }
         }
     } else {
-        isDrawing = false;
+        if (isDrawing) {
+            // 描画終了時に最後のパスを確定
+            isDrawing = false;
+            currentPath = [];
+            coordinateHistory = [];
+        }
     }
 }
 
