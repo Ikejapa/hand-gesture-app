@@ -271,26 +271,34 @@ function detectGesture(landmarks) {
     const ring = landmarks[16];
     const pinky = landmarks[20];
     
-    // 人差し指が立っている
-    const indexUp = landmarks[8].y < landmarks[6].y;
-    // 中指が立っている
-    const middleUp = landmarks[12].y < landmarks[10].y;
-    // 親指と人差し指の距離
+    // 各指が立っているかの判定
+    const thumbUp = landmarks[4].x > landmarks[3].x; // 親指（横方向で判定）
+    const indexUp = landmarks[8].y < landmarks[6].y; // 人差し指
+    const middleUp = landmarks[12].y < landmarks[10].y; // 中指
+    const ringUp = landmarks[16].y < landmarks[14].y; // 薬指
+    const pinkyUp = landmarks[20].y < landmarks[18].y; // 小指
+    
+    // 親指と人差し指の距離（ピンチ判定用）
     const pinchDistance = Math.sqrt(
         Math.pow(thumb.x - index.x, 2) + 
         Math.pow(thumb.y - index.y, 2)
     );
     
+    // 立っている指の数をカウント
+    const fingersUp = [thumbUp, indexUp, middleUp, ringUp, pinkyUp].filter(Boolean).length;
+    
     if (pinchDistance < 0.08) {
         return 'ピンチ';
-    } else if (indexUp && !middleUp) {
-        return 'ポイント';
-    } else if (indexUp && middleUp) {
-        return 'ピース';
-    } else if (!indexUp && !middleUp) {
-        return 'グー';
+    } else if (fingersUp >= 4) {
+        return 'パー'; // 4本以上立っていればパー
+    } else if (indexUp && middleUp && !ringUp && !pinkyUp) {
+        return 'ピース'; // 人差し指と中指のみ
+    } else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+        return 'ポイント'; // 人差し指のみ
+    } else if (fingersUp <= 1) {
+        return 'グー'; // 1本以下ならグー
     } else {
-        return 'パー';
+        return 'その他';
     }
 }
 
@@ -300,7 +308,7 @@ let SMOOTH_THRESHOLD = 2; // 座標間の最小距離
 
 // 描画モード処理
 function handleDrawMode(x, y, gesture) {
-    if (gesture === 'ポイント') {
+    if (gesture === 'ポイント' || gesture === 'パー') {
         if (!isDrawing) {
             isDrawing = true;
             currentPath = [{x, y}];
@@ -314,12 +322,22 @@ function handleDrawMode(x, y, gesture) {
             if (distance > SMOOTH_THRESHOLD) {
                 currentPath.push({x, y});
                 
-                // 描画設定
-                drawingCtx.strokeStyle = brushColor;
-                drawingCtx.lineWidth = brushSize;
-                drawingCtx.lineCap = 'round';
-                drawingCtx.lineJoin = 'round';
-                drawingCtx.globalCompositeOperation = 'source-over';
+                // ジェスチャーに応じた描画設定
+                if (gesture === 'パー') {
+                    // パー：消しゴムモード
+                    drawingCtx.strokeStyle = 'white'; // 背景色で消す
+                    drawingCtx.lineWidth = brushSize * 2; // ブラシサイズの2倍
+                    drawingCtx.lineCap = 'round';
+                    drawingCtx.lineJoin = 'round';
+                    drawingCtx.globalCompositeOperation = 'source-over';
+                } else {
+                    // ポイント：通常の描画
+                    drawingCtx.strokeStyle = brushColor;
+                    drawingCtx.lineWidth = brushSize;
+                    drawingCtx.lineCap = 'round';
+                    drawingCtx.lineJoin = 'round';
+                    drawingCtx.globalCompositeOperation = 'source-over';
+                }
                 
                 // パス全体を再描画（最後の数点のみ）
                 if (currentPath.length >= 2) {
@@ -372,8 +390,8 @@ function handleDrawMode(x, y, gesture) {
 
 // パーティクルモード処理
 function handleParticleMode(x, y, gesture) {
-    if (gesture === 'ポイント' || gesture === 'パー') {
-        // パーティクル生成
+    if (gesture === 'ポイント') {
+        // パーティクル生成（ポイントの時のみ）
         for (let i = 0; i < 5; i++) {
             particles.push({
                 x: x,
