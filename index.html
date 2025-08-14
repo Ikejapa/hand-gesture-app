@@ -2,7 +2,9 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Hand Gesture Art - ハンドジェスチャーアート</title>
     <link rel="stylesheet" href="styles.css">
     <!-- MediaPipe Hand Tracking -->
@@ -49,7 +51,13 @@
             <canvas id="drawingCanvas"></canvas>
             <canvas id="handCanvas"></canvas>
             <canvas id="segmentationCanvas"></canvas>
-            <video id="inputVideo" style="display: none;"></video>
+            <video id="inputVideo" style="display: none;" playsinline autoplay muted></video>
+            <!-- iOS用カメラ開始ボタン -->
+            <div id="startCameraButton" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000;">
+                <button onclick="manualStartCamera()" style="padding: 20px 40px; font-size: 18px; background: #5EABD6; color: white; border: none; border-radius: 10px; cursor: pointer;">
+                    カメラを開始
+                </button>
+            </div>
         </div>
 
         <!-- コントロールパネル -->

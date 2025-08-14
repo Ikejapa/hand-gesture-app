@@ -401,15 +401,35 @@ function handleParticleMode(x, y, gesture) {
     drawingCtx.globalAlpha = 1.0;
 }
 
-// カメラ初期化
-const camera = new Camera(video, {
+// iOS検出
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// カメラ初期化（iOS対応）
+let cameraConfig = {
     onFrame: async () => {
-        await hands.send({image: video});
-        await selfieSegmentation.send({image: video});
-    },
-    width: 1280,
-    height: 720
-});
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            await hands.send({image: video});
+            // iOSではセグメンテーションをスキップ（パフォーマンス対策）
+            if (!isIOS() || !isBlurEnabled) {
+                await selfieSegmentation.send({image: video});
+            }
+        }
+    }
+};
+
+// iOS向けに解像度を調整
+if (isIOS()) {
+    cameraConfig.width = 640;
+    cameraConfig.height = 480;
+} else {
+    cameraConfig.width = 1280;
+    cameraConfig.height = 720;
+}
+
+const camera = new Camera(video, cameraConfig);
 
 // HTTPS接続の確認
 function checkHTTPS() {
@@ -429,27 +449,85 @@ function checkMediaDevicesSupport() {
     return true;
 }
 
-// カメラ開始
-if (checkHTTPS() && checkMediaDevicesSupport()) {
-    camera.start().then(() => {
+// カメラ開始（iOS対応改善）
+async function startCamera() {
+    try {
+        // iOSの場合、video要素に追加属性を設定
+        if (isIOS()) {
+            video.setAttribute('playsinline', '');
+            video.setAttribute('autoplay', '');
+            video.setAttribute('muted', '');
+        }
+        
+        await camera.start();
         cameraStatus.textContent = '動作中';
         cameraStatus.classList.add('active');
-    }).catch((err) => {
+        
+        // iOSの場合、初期化後に少し待機
+        if (isIOS()) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    } catch (err) {
         console.error('カメラエラー:', err);
         let errorMessage = 'カメラエラー';
         
         if (err.name === 'NotAllowedError') {
             errorMessage = 'カメラ許可が必要です';
-            alert('カメラの使用を許可してください。ブラウザの設定でカメラアクセスを有効にしてから、ページを再読み込みしてください。');
+            if (isIOS()) {
+                alert('カメラの使用を許可してください。\n設定 > Safari > カメラでアクセスを許可してから、ページを再読み込みしてください。');
+            } else {
+                alert('カメラの使用を許可してください。ブラウザの設定でカメラアクセスを有効にしてから、ページを再読み込みしてください。');
+            }
         } else if (err.name === 'NotFoundError') {
             errorMessage = 'カメラが見つかりません';
-        } else if (err.name === 'NotSupportedError') {
-            errorMessage = 'HTTPS接続が必要です';
-            alert('カメラを使用するにはHTTPS接続が必要です。');
+        } else if (err.name === 'NotSupportedError' || err.name === 'NotReadableError') {
+            errorMessage = 'カメラアクセスエラー';
+            if (isIOS()) {
+                alert('カメラへのアクセスに失敗しました。\n他のアプリがカメラを使用していないか確認し、ページを再読み込みしてください。');
+            } else {
+                alert('カメラを使用するにはHTTPS接続が必要です。');
+            }
+        } else if (err.name === 'OverconstrainedError') {
+            errorMessage = '解像度エラー';
+            alert('カメラの解像度設定に問題があります。ページを再読み込みしてください。');
         }
         
         cameraStatus.textContent = errorMessage;
-    });
+    }
+}
+
+// 手動カメラ開始機能（iOS用）
+window.manualStartCamera = async function() {
+    const button = document.getElementById('startCameraButton');
+    if (button) {
+        button.style.display = 'none';
+    }
+    await startCamera();
+};
+
+// カメラ開始
+if (checkHTTPS() && checkMediaDevicesSupport()) {
+    // iOS Safariの場合、ユーザー操作を促す
+    if (isIOS()) {
+        // 自動開始を試みる
+        window.addEventListener('load', () => {
+            setTimeout(async () => {
+                try {
+                    await startCamera();
+                } catch (err) {
+                    // 自動開始に失敗した場合、手動開始ボタンを表示
+                    console.log('自動カメラ開始に失敗。手動開始ボタンを表示します。');
+                    const button = document.getElementById('startCameraButton');
+                    if (button) {
+                        button.style.display = 'block';
+                    }
+                    cameraStatus.textContent = 'ボタンをタップ';
+                }
+            }, 100);
+        });
+    } else {
+        startCamera();
+    }
 } else {
     cameraStatus.textContent = 'HTTPS必須';
 }
