@@ -308,7 +308,7 @@ let SMOOTH_THRESHOLD = 2; // 座標間の最小距離
 
 // 描画モード処理
 function handleDrawMode(x, y, gesture) {
-    if (gesture === 'ポイント' || gesture === 'パー') {
+    if (gesture === 'ポイント') {
         if (!isDrawing) {
             isDrawing = true;
             currentPath = [{x, y}];
@@ -322,22 +322,12 @@ function handleDrawMode(x, y, gesture) {
             if (distance > SMOOTH_THRESHOLD) {
                 currentPath.push({x, y});
                 
-                // ジェスチャーに応じた描画設定
-                if (gesture === 'パー') {
-                    // パー：消しゴムモード
-                    drawingCtx.strokeStyle = 'white'; // 背景色で消す
-                    drawingCtx.lineWidth = brushSize * 2; // ブラシサイズの2倍
-                    drawingCtx.lineCap = 'round';
-                    drawingCtx.lineJoin = 'round';
-                    drawingCtx.globalCompositeOperation = 'source-over';
-                } else {
-                    // ポイント：通常の描画
-                    drawingCtx.strokeStyle = brushColor;
-                    drawingCtx.lineWidth = brushSize;
-                    drawingCtx.lineCap = 'round';
-                    drawingCtx.lineJoin = 'round';
-                    drawingCtx.globalCompositeOperation = 'source-over';
-                }
+                // 描画設定
+                drawingCtx.strokeStyle = brushColor;
+                drawingCtx.lineWidth = brushSize;
+                drawingCtx.lineCap = 'round';
+                drawingCtx.lineJoin = 'round';
+                drawingCtx.globalCompositeOperation = 'source-over';
                 
                 // パス全体を再描画（最後の数点のみ）
                 if (currentPath.length >= 2) {
