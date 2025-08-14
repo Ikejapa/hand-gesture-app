@@ -136,6 +136,10 @@ header {
     overflow: hidden;
     aspect-ratio: 4/3;
     min-height: 500px;
+    /* モバイル対策：固定サイズでスクロール影響を軽減 */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 #drawingCanvas, #handCanvas {

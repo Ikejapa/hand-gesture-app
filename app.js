@@ -104,15 +104,27 @@ function restoreDrawingState() {
     img.src = drawingHistory[historyStep];
 }
 
-// キャンバスサイズ設定
+// キャンバスサイズ設定（描画保持版）
 function resizeCanvas() {
     const container = document.querySelector('.canvas-container');
     const rect = container.getBoundingClientRect();
     
-    drawingCanvas.width = rect.width;
-    drawingCanvas.height = rect.height;
-    handCanvas.width = rect.width;
-    handCanvas.height = rect.height;
+    // 現在の描画内容を保存（リサイズ前）
+    const currentDrawing = drawingCanvas.toDataURL();
+    
+    // 新しいサイズを設定
+    const newWidth = rect.width;
+    const newHeight = rect.height;
+    
+    // サイズが変わっていない場合は何もしない（描画保持のため）
+    if (drawingCanvas.width === newWidth && drawingCanvas.height === newHeight) {
+        return;
+    }
+    
+    drawingCanvas.width = newWidth;
+    drawingCanvas.height = newHeight;
+    handCanvas.width = newWidth;
+    handCanvas.height = newHeight;
     
     // セグメンテーション用キャンバスは小さいサイズ
     segmentationCanvas.width = 200;
@@ -122,8 +134,19 @@ function resizeCanvas() {
     drawingCtx.fillStyle = 'white';
     drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
     
-    // 初期状態を履歴に保存
-    saveDrawingState();
+    // 保存した描画内容を復元
+    if (currentDrawing && currentDrawing !== 'data:,') {
+        const img = new Image();
+        img.onload = function() {
+            drawingCtx.drawImage(img, 0, 0);
+            // 復元後に履歴を保存
+            saveDrawingState();
+        };
+        img.src = currentDrawing;
+    } else {
+        // 初期状態を履歴に保存
+        saveDrawingState();
+    }
 }
 
 // MediaPipe Hands初期化
@@ -608,8 +631,27 @@ document.getElementById('saveBtn').addEventListener('click', () => {
 });
 
 
-// ウィンドウリサイズ対応
-window.addEventListener('resize', resizeCanvas);
+// リサイズ処理のデバウンス（モバイル対策）
+let resizeTimeout = null;
+function debouncedResize() {
+    if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+    }
+    resizeTimeout = setTimeout(() => {
+        resizeCanvas();
+    }, 150); // 150ms待機してからリサイズ実行
+}
+
+// ウィンドウリサイズ対応（デバウンス付き）
+window.addEventListener('resize', debouncedResize);
+
+// モバイル向け：orientationchange対応
+window.addEventListener('orientationchange', () => {
+    // 画面回転後、少し待ってからリサイズ
+    setTimeout(() => {
+        resizeCanvas();
+    }, 500);
+});
 
 // ぼかしON/OFFボタン
 document.getElementById('blurToggleBtn').addEventListener('click', () => {
