@@ -411,7 +411,7 @@ header {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto;
         gap: 1.5rem;
-        margin: 1rem auto;
+        margin: 1rem 0.33rem; /* 左右マージンを1/3に縮小 */
         max-width: none;
     }
     
@@ -531,8 +531,8 @@ header {
     }
     
     .container {
-        margin: 1rem auto;
-        padding: 0 0.5rem;
+        margin: 1rem 0.17rem; /* 左右マージンを1/3に縮小（0.5rem→0.17rem） */
+        padding: 0 0.17rem; /* 左右パディングを1/3に縮小 */
         gap: 1rem;
     }
     
@@ -576,9 +576,9 @@ header {
     }
     
     .container {
-        padding: 0 1rem;
+        padding: 0 0.33rem; /* 左右パディングを1/3に縮小 */
         margin: 0.5rem auto;
-        width: calc(100% - 2rem);
+        width: calc(100% - 0.66rem); /* 全体幅から縮小されたパディング分を引く */
         max-width: none;
     }
     
